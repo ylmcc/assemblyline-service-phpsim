@@ -1,0 +1,74 @@
+name: PhpSim
+version: $SERVICE_TAG
+description: >
+  Statically resolves literal-only eval/assert/create_function decode chains in PHP
+  (base64/rot13/gzinflate, arbitrarily nested) without ever executing them, and scans
+  for dangerous-sink taint from user input, auth-bypass gates, and privilege-escalation
+  idioms -- surfacing what a decoded webshell actually does, which generic
+  deobfuscation services don't.
+
+accepts: code/php
+rejects: empty|metadata/.*
+
+stage: CORE
+category: Static Analysis
+file_required: true
+timeout: 60
+disable_cache: false
+enabled: true
+is_external: false
+licence_count: 0
+
+submission_params:
+  - name: max_decode_depth
+    type: int
+    default: 5
+    value: 5
+
+heuristics:
+  - heur_id: 1
+    name: Dangerous sink directly reachable from user input
+    description: A superglobal ($_GET/$_POST/$_REQUEST/$_FILES/$_COOKIE) is passed directly into system/exec/shell_exec/passthru/popen/proc_open, or a preg_replace /e-modifier code-execution gadget is present.
+    filetype: ".*"
+    score: 800
+    attack_id: T1505.003
+  - heur_id: 2
+    name: Dangerous sink reachable via a simple assignment from user input
+    description: A variable assigned directly from a superglobal is later passed into a dangerous sink.
+    filetype: ".*"
+    score: 600
+    attack_id: T1505.003
+  - heur_id: 3
+    name: Hardcoded credential/auth-bypass gate detected
+    description: An md5() comparison against a hardcoded hash gates access to further logic.
+    filetype: ".*"
+    score: 400
+  - heur_id: 4
+    name: Session forgery / privilege escalation pattern
+    description: Direct DB access or admin-class instantiation used to forge an authenticated session rather than a normal login.
+    filetype: ".*"
+    score: 600
+    attack_id: T1078
+  - heur_id: 5
+    name: Obfuscated eval/assert/create_function chain resolved
+    description: A literal-only (or simple-tracked-variable) base64/rot13/gzinflate decode chain feeding eval/assert/create_function was statically resolved.
+    filetype: ".*"
+    score: 300
+  - heur_id: 6
+    name: Telephony-fraud primitive (Asterisk channel originate)
+    description: The script can command Asterisk to originate a call -- a toll-fraud primitive specific to compromised PBX systems.
+    filetype: ".*"
+    score: 500
+    attack_id: T1496
+  - heur_id: 7
+    name: Deobfuscation incomplete
+    description: A decode chain or code-exec sink argument could not be statically resolved (not a literal/tracked-variable chain, or exceeded max_decode_depth) -- reported, not guessed at.
+    filetype: ".*"
+    score: 0
+
+docker_config:
+  image: kylemc54321/assemblyline-service-phpsim:$SERVICE_TAG
+  cpu_cores: 1
+  ram_mb_min: 128
+  ram_mb: 256
+  allow_internet_access: false

