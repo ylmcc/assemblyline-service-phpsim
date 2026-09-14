@@ -64,8 +64,43 @@ _PHP_MARKERS = ("<?php", "function", "$_", "echo", "system(", "eval(")
 
 def strip_junk_comments(text: str) -> str:
     """Remove /* ... */ comments -- the real corpus's obfuscation inserts a random
-    junk comment between every token. Does not touch // or # line comments."""
-    return re.sub(r"/\*.*?\*/", "", text, flags=re.DOTALL)
+    junk comment between every token. Does not touch // or # line comments.
+
+    Quote-aware: a real corpus sample hides an operator IP as literal text inside a
+    string shaped to look like a comment (echo '<? -- ((/*1.2.3.4*/)) -- ?>';). A
+    naive quote-unaware strip would destroy that IOC (and any other string content
+    shaped like /* ... */) before any scanning ever sees it, so /* */ is only
+    treated as a real comment when it appears outside a '...'/"..." string literal."""
+    out = []
+    i = 0
+    n = len(text)
+    in_string = None  # None, or the quote character currently open
+    while i < n:
+        c = text[i]
+        if in_string:
+            out.append(c)
+            if c == "\\" and i + 1 < n:
+                out.append(text[i + 1])
+                i += 2
+                continue
+            if c == in_string:
+                in_string = None
+            i += 1
+            continue
+        if c in ("'", '"'):
+            in_string = c
+            out.append(c)
+            i += 1
+            continue
+        if c == "/" and i + 1 < n and text[i + 1] == "*":
+            end = text.find("*/", i + 2)
+            if end == -1:
+                break  # unterminated comment -- drop the remainder
+            i = end + 2
+            continue
+        out.append(c)
+        i += 1
+    return "".join(out)
 
 
 def _looks_like_php(text: str) -> bool:
