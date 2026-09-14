@@ -69,6 +69,26 @@ def test_undeclared_variable_is_unresolved():
     assert layers == []
 
 
+def test_comment_shaped_text_inside_string_literal_is_preserved():
+    # Real corpus sample: an operator IP hidden as literal text inside an echo'd
+    # string, shaped to look like a comment. A quote-unaware stripper would destroy
+    # it before any scanning ever sees it -- use a placeholder IP, not the real one.
+    from phpsim.deobfuscate import strip_junk_comments
+
+    snippet = "echo '<? --  ((/*192.0.2.55*/)) -- ?>';"
+    assert "192.0.2.55" in strip_junk_comments(snippet)
+
+
+def test_real_comments_outside_strings_are_still_stripped():
+    from phpsim.deobfuscate import strip_junk_comments
+
+    snippet = "<?php /*junk1*/ eval /*junk2*/ ('x');"
+    stripped = strip_junk_comments(snippet)
+    assert "junk1" not in stripped
+    assert "junk2" not in stripped
+    assert "eval" in stripped
+
+
 def test_max_decode_depth_truncates_and_flags():
     # Four STACKED eval-wrapper layers (each layer's decoded content is itself
     # another eval(base64_decode(...)) call) -- this is what max_depth caps, as
