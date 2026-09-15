@@ -20,9 +20,24 @@ _AUTH_GATE_RE = re.compile(
     r"|['\"]([0-9a-fA-F]{32})['\"]\s*==\s*md5\s*\(\s*\$_(?:GET|POST|REQUEST)\[[^\]]+\]\s*\)"
 )
 _ASTERISK_ORIGINATE_RE = re.compile(r"asterisk\s+-rx.{0,120}channel\s+originate", re.IGNORECASE | re.DOTALL)
-_SETADMIN_RE = re.compile(r"->\s*setAdmin\s*\(")
+# Argument-free or explicit-truthy-literal only (setAdmin(), setAdmin(true), setAdmin(1))
+# -- confirmed via a real observed webshell sample that the argument-free call shape is
+# the actual malicious pattern (relying on a default-true parameter in the class
+# definition). Deliberately excludes a variable/expression argument like
+# setAdmin($flag) or setAdmin($isAdmin), which is the overwhelmingly common shape for
+# an ordinary, legitimate parameterized setter in real-world PHP applications and was
+# generating false positives on plain non-malicious code with a method of this name.
+_SETADMIN_RE = re.compile(r"->\s*setAdmin\s*\(\s*(?:true|1|TRUE)?\s*\)")
 _DB_OPEN_RE = re.compile(r"\b(sqlite_open|new\s+SQLite3|mysqli_connect|mysql_connect)\s*\(")
-_SESSION_ASSIGN_RE = re.compile(r"\$_SESSION\s*\[")
+# Assignment TO a privilege/role-sounding session key, not mere presence of any
+# $_SESSION[...] usage anywhere in the file -- the former (DB access alongside
+# literally any session read/write, e.g. every ordinary PHP login system ever
+# written) generated false positives on completely mundane, legitimate code. The
+# latter is specific to the actual "grant admin via session" backdoor pattern this
+# check is meant to catch.
+_SESSION_ASSIGN_RE = re.compile(
+    r"\$_SESSION\s*\[\s*['\"](?:is_?admin|admin|role|access_?level|privileged?)['\"]\s*\]\s*="
+)
 _PREG_REPLACE_RE = re.compile(r"preg_replace\s*\(")
 _PREG_PATTERN_RE = re.compile(r"\s*(['\"])(.)((?:(?!\2).)*)\2([a-zA-Z]*)\1", re.DOTALL)
 

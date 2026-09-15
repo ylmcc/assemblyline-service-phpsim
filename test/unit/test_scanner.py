@@ -81,6 +81,36 @@ def test_privilege_escalation_setadmin_detected():
     assert "privilege_escalation" in kinds
 
 
+def test_privilege_escalation_parameterized_setadmin_not_flagged():
+    # Real-world false positive this guards against: an ordinary, legitimate setter
+    # call like $user->setAdmin($isAdmin) was previously flagged identically to the
+    # actual malicious argument-free setAdmin() shape above, just because both
+    # contain the method name "setAdmin" -- a common, benign name in real PHP apps.
+    script = "<?php $user->setAdmin($isAdmin); ?>"
+    findings = scan(script)
+    kinds = [f.kind for f in findings]
+    assert "privilege_escalation" not in kinds
+
+
+def test_privilege_escalation_ordinary_login_not_flagged():
+    # Real-world false positive this guards against: a DB connection plus ANY
+    # $_SESSION[...] use anywhere in the file (e.g. a completely ordinary login
+    # page setting $_SESSION['user_id'] after a successful mysqli_connect) used to
+    # be flagged as privilege escalation. Only an actual privilege/role-sounding
+    # session key being assigned should trigger this.
+    script = "<?php mysqli_connect($h,$u,$p); $_SESSION['user_id'] = $row['id']; ?>"
+    findings = scan(script)
+    kinds = [f.kind for f in findings]
+    assert "privilege_escalation" not in kinds
+
+
+def test_privilege_escalation_session_admin_grant_detected():
+    script = "<?php mysqli_connect($h,$u,$p); $_SESSION['is_admin'] = true; ?>"
+    findings = scan(script)
+    kinds = [f.kind for f in findings]
+    assert "privilege_escalation" in kinds
+
+
 def test_no_findings_on_benign_script():
     script = "<?php echo 'hello world'; ?>"
     findings = scan(script)
